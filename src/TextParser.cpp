@@ -5,6 +5,8 @@
 #include <fstream>
 #include <filesystem>
 #include <cmath>
+#include <ranges>
+#include <algorithm>
 
 
 TextParser::TextParser()
@@ -106,10 +108,13 @@ void TextParser::ParseWorker(const std::string& text)
 
 bool TextParser::IsDelimiter(const char& symbol)
 {
-    return symbol == ' '
-        or symbol == '\0'
-        or symbol == '\n'
-        or symbol == '\t';
+    static const std::vector<char> delimiters = {' ', '\n', '\t', '\0'};
+
+    return std::ranges::any_of(delimiters.begin(), delimiters.end(),
+                               [&symbol](const auto& delimiter)
+                               {
+                                   return symbol == delimiter;
+                               });
 }
 
 void TextParser::Add(const std::string& word)
