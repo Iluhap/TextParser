@@ -7,6 +7,7 @@
 #include <cmath>
 #include <ranges>
 #include <algorithm>
+#include <future>
 
 
 TextParser::TextParser()
@@ -67,21 +68,25 @@ void TextParser::ExecuteParse()
 {
     unique_words_.clear();
 
-    std::vector<std::thread> thread_pool;
+    std::vector<std::future<std::set<std::string>>> futures;
+
     for (const auto& text : text_pool_)
     {
-        std::thread worker {&TextParser::ParseWorker, this, text};
-        thread_pool.push_back(std::move(worker));
+        auto future = std::async(std::launch::async, &TextParser::ParseWorker, text);
+        futures.push_back(std::move(future));
     }
 
-    for (auto& thread : thread_pool)
+    for (auto& future : futures)
     {
-        thread.join();
+        auto words = future.get();
+        unique_words_.insert(words.begin(), words.end());
     }
 }
 
-void TextParser::ParseWorker(const std::string& text)
+std::set<std::string> TextParser::ParseWorker(const std::string& text)
 {
+    std::set<std::string> unique_words;
+
     std::string buffer;
 
     for (const auto& symbol : text)
@@ -90,7 +95,7 @@ void TextParser::ParseWorker(const std::string& text)
         {
             if (not buffer.empty())
             {
-                Add(buffer);
+                unique_words.insert(buffer);
                 buffer.clear();
             }
         }
@@ -102,8 +107,10 @@ void TextParser::ParseWorker(const std::string& text)
 
     if (not buffer.empty())
     {
-        Add(buffer);
+        unique_words.insert(buffer);
     }
+
+    return unique_words;
 }
 
 bool TextParser::IsDelimiter(const char& symbol)
@@ -115,11 +122,4 @@ bool TextParser::IsDelimiter(const char& symbol)
                                {
                                    return symbol == delimiter;
                                });
-}
-
-void TextParser::Add(const std::string& word)
-{
-    std::lock_guard lock_guard {unique_words_write_mutex_};
-
-    unique_words_.insert(word);
 }

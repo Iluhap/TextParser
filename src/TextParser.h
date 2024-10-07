@@ -20,15 +20,12 @@ public:
 private:
     void Load(std::basic_istream<char>* buffer, const std::size_t& buffer_size);
     void ExecuteParse();
-    void ParseWorker(const std::string& text);
-    void Add(const std::string& word);
 
 private:
     static bool IsDelimiter(const char& symbol);
+    static std::set<std::string> ParseWorker(const std::string& text);
 
 private:
     std::vector<std::string> text_pool_;
     std::set<std::string> unique_words_;
-
-    std::mutex unique_words_write_mutex_;
 };
